@@ -62,7 +62,7 @@ class EventController extends Controller
             'guests.*.email' => ['nullable', 'email'],
         ]);
 
-        DB::transaction(function () use ($event, $data) {
+        $registration = DB::transaction(function () use ($event, $data) {
             $registration = Registration::create([
                 'event_id'      => $event->id,
                 'contact_name'  => $data['contact_name'],
@@ -86,14 +86,17 @@ class EventController extends Controller
                     'is_primary'      => false,
                 ]);
             }
+            return $registration;
         });
         Mail::to($registration->contact_email)
             ->send(new EventAttendanceConfirmation($event, $registration->contact_name));
 
-        foreach ($data['guests'] as $guestData) {
-            if (!empty($guestData['email'])) {
-                Mail::to($guestData['email'])
-                    ->send(new EventAttendanceConfirmation($event, $guestData['name'] ?? 'Invité'));
+        if(isset($data['guests'])) {
+            foreach ($data['guests'] as $guestData) {
+                if (!empty($guestData['email'])) {
+                    Mail::to($guestData['email'])
+                        ->send(new EventAttendanceConfirmation($event, $guestData['name'] ?? 'Invité'));
+                }
             }
         }
 
